@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부산신항 통합 입출항 정보 서비스</title>
+<meta name="description" content="부산신항 8개 터미널(PNIT, PNC, HJNC, HPNT, BNCT, BCT, DGT, BNMT) 실시간 입출항 정보를 한눈에 확인하세요. 무료 · 회원가입 불필요">
+<meta property="og:title" content="부산신항 통합 입출항 정보">
+<meta property="og:description" content="8개 터미널 실시간 입출항 정보 · 무료 · 회원가입 불필요">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020817;color:#e2e8f0;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:13px}
+  a{color:inherit;text-decoration:none}
+
+  /* Header */
+  .hdr{background:linear-gradient(180deg,#0a1628,#020817);border-bottom:1px solid #0f2040;padding:14px 16px;position:sticky;top:0;z-index:100}
+  .hdr-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .hdr-title{font-size:20px;font-weight:900;color:#00B4D8;letter-spacing:2px}
+  .hdr-sub{font-size:11px;color:#475569;margin-top:2px;letter-spacing:1px}
+  .hdr-right{display:flex;align-items:center;gap:12px}
+  .clock{font-family:monospace;font-size:12px;color:#94a3b8}
+
+  /* Ad Banner */
+  .ad-top{padding:8px 16px;border-bottom:1px solid #0f2040;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:background .5s}
+  .ad-top-inner{max-width:1400px;margin:0 auto;width:100%;display:flex;justify-content:space-between;align-items:center}
+  .ad-top-title{font-size:12px;font-weight:700;color:#cbd5e1}
+  .ad-top-sub{font-size:11px;color:#94a3b8}
+  .ad-btn{font-size:11px;color:#00B4D8;border:1px solid #00B4D844;padding:3px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;background:none}
+
+  /* Main */
+  .main{max-width:1400px;margin:0 auto;padding:14px 16px}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat{background:#0a1628;border:1px solid #0f2040;border-radius:10px;padding:12px 14px;text-align:center}
+  .stat-n{font-size:24px;font-weight:900;font-family:monospace}
+  .stat-l{font-size:10px;color:#64748b;margin-top:3px}
+
+  /* Terminal Grid */
+  .t-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+  @media(max-width:700px){.t-grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}
+  .t-card{background:#0a1628;border:1px solid #0f2040;border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .2s}
+  .t-card:hover{border-color:#334155}
+  .t-card.sel{border-color:#00B4D8;background:rgba(0,180,216,0.08);box-shadow:0 0 12px rgba(0,180,216,0.15)}
+  .t-name{font-size:14px;font-weight:900}
+  .t-berth{font-size:10px;color:#475569;margin-top:1px}
+  .t-count{font-size:12px;font-weight:700}
+
+  /* Filters */
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .filters input{background:#0f172a;border:1px solid #1e293b;color:#e2e8f0;border-radius:6px;padding:7px 12px;font-size:12px;outline:none;min-width:150px}
+  .fbtn{background:#0f172a;color:#64748b;border:1px solid #1e293b;border-radius:6px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+  .fbtn.on{background:#00B4D8;color:#000;border-color:#00B4D8}
+  .fbtn:hover{border-color:#334155}
+
+  /* Table */
+  .tbl-wrap{background:#0a1628;border:1px solid #0f2040;border-radius:10px;overflow:hidden;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:600px}
+  thead tr{background:#0f2040}
+  th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#475569;white-space:nowrap}
+  td{padding:9px 12px;border-top:1px solid #0f172a;white-space:nowrap}
+  tbody tr:hover td{background:rgba(15,32,64,0.5)}
+  .t-foot{padding:7px 12px;border-top:1px solid #0f2040;font-size:10px;color:#334155;display:flex;justify-content:space-between}
+
+  /* Badge */
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid}
+  .dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+
+  /* Bottom Ads */
+  .ads-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  @media(max-width:700px){.ads-bottom{grid-template-columns:1fr}}
+  .ad-card{border:1px solid #1e293b;border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .2s}
+  .ad-card:hover{border-color:#334155}
+  .ad-card-title{font-size:13px;font-weight:700;color:#e2e8f0}
+  .ad-card-sub{font-size:11px;color:#64748b;margin-top:3px}
+  .ad-card-cta{font-size:11px;color:#00B4D8;margin-top:8px}
+
+  /* Footer */
+  footer{border-top:1px solid #0f2040;padding:12px 16px;text-align:center;margin-top:20px}
+  footer p{font-size:11px;color:#334155}
+
+  /* Loading/Error */
+  .msg{padding:40px;text-align:center;color:#475569;font-size:13px}
+  .msg small{display:block;margin-top:6px;color:#334155;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-inner">
+    <div>
+      <div class="hdr-title">⚓ BUSAN NEW PORT</div>
+      <div class="hdr-sub">부산신항 통합 입출항 정보 서비스 · 무료 · 회원가입 불필요</div>
+    </div>
+    <div class="hdr-right">
+      <div class="clock" id="clock"></div>
+      <div style="background:rgba(34,197,94,0.1);border:1px solid #22c55e44;border-radius:8px;padding:5px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:#22c55e;font-family:monospace" id="s-active">-</div>
+        <div style="font-size:9px;color:#64748b">접안/작업중</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b44;border-radius:8px;padding:5px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:#f59e0b;font-family:monospace" id="s-arriving">-</div>
+        <div style="font-size:9px;color:#64748b">입항예정</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Ad Banner -->
+<div class="ad-top" id="ad-top">
+  <div class="ad-top-inner">
+    <span class="ad-top-title" id="ad-title">📢 광고 문의</span>
+    <span class="ad-top-sub" id="ad-sub">물류·해운·항만 관련 광고 게재 문의 환영합니다</span>
+    <button class="ad-btn" onclick="location.href='mailto:ads@bnpinfo.kr'">문의하기</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-n" id="s-total" style="color:#00B4D8">-</div>
+      <div class="stat-l">전체 선박</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="s-docked" style="color:#22c55e">-</div>
+      <div class="stat-l">접안중</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="s-working" style="color:#3b82f6">-</div>
+      <div class="stat-l">작업중</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="s-update" style="font-size:13px;color:#94a3b8">-</div>
+      <div class="stat-l">마지막 갱신</div>
+    </div>
+  </div>
+
+  <!-- Terminal Cards -->
+  <div class="t-grid" id="t-grid"></div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input id="search" placeholder="🔍  선명 검색..." oninput="render()">
+    <button class="fbtn on" data-f="all" onclick="setFilter(this)">전체</button>
+    <button class="fbtn" data-f="docked" onclick="setFilter(this)">접안중</button>
+    <button class="fbtn" data-f="working" onclick="setFilter(this)">작업중</button>
+    <button class="fbtn" data-f="arriving" onclick="setFilter(this)">입항예정</button>
+    <button class="fbtn" data-f="departed" onclick="setFilter(this)">출항완료</button>
+    <button class="fbtn" id="clear-btn" style="display:none" onclick="clearTerminal()">✕ 필터 해제</button>
+    <button class="fbtn" onclick="fetchData()" style="margin-left:auto">↻ 새로고침</button>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>터미널</th><th>부두</th><th>선명</th><th>선석</th><th>상태</th>
+        <th>입항(ETA)</th><th>출항(ETD)</th><th>항차</th><th>화물</th>
+      </tr></thead>
+      <tbody id="tbody">
+        <tr><td colspan="9" class="msg">데이터 불러오는 중...<small>처음 로드 시 30초 정도 소요될 수 있습니다</small></td></tr>
+      </tbody>
+    </table>
+    <div class="t-foot">
+      <span id="f-count">-</span>
+      <span>※ 각 터미널 공개 데이터 기준 · 15분마다 자동 갱신</span>
+    </div>
+  </div>
+
+  <!-- Bottom Ads -->
+  <div class="ads-bottom">
+    <div class="ad-card" style="background:linear-gradient(135deg,rgba(0,119,182,0.15),rgba(0,119,182,0.05))">
+      <div class="ad-card-title">부산신항 물류 전문 포워딩</div>
+      <div class="ad-card-sub">최저가 보장 | 24시간 상담 가능</div>
+      <div class="ad-card-cta">광고 문의 →</div>
+    </div>
+    <div class="ad-card" style="background:linear-gradient(135deg,rgba(2,62,138,0.15),rgba(2,62,138,0.05))">
+      <div class="ad-card-title">항만 통관·운송 솔루션</div>
+      <div class="ad-card-sub">통관 · 운송 · 보관 원스톱 서비스</div>
+      <div class="ad-card-cta">광고 문의 →</div>
+    </div>
+    <div class="ad-card" style="background:linear-gradient(135deg,rgba(0,180,216,0.15),rgba(0,180,216,0.05))">
+      <div class="ad-card-title">선박 대리점 전문 서비스</div>
+      <div class="ad-card-sub">부산항 전문 | 신속 정확한 처리</div>
+      <div class="ad-card-cta">광고 문의 →</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 부산신항 통합 입출항 정보 서비스 | 광고 문의: ads@bnpinfo.kr</p>
+  <p style="margin-top:4px">본 서비스는 각 터미널 공개 데이터를 제공합니다 · 실제 입출항 정보와 다를 수 있습니다</p>
+</footer>
+
+<script>
+const API = 'https://busan-port-api.onrender.com';
+const TERMINALS = {
+  pnit:{name:'PNIT',berth:'1부두',color:'#00B4D8'},
+  pnc:{name:'PNC',berth:'2부두',color:'#0077B6'},
+  hjnc:{name:'HJNC',berth:'3부두',color:'#3b82f6'},
+  hpnt:{name:'HPNT',berth:'4부두',color:'#48CAE4'},
+  bnct:{name:'BNCT',berth:'5부두',color:'#0096C7'},
+  bct:{name:'BCT',berth:'6부두',color:'#06b6d4'},
+  dgt:{name:'DGT',berth:'7부두',color:'#67e8f9'},
+  bnmt:{name:'BNMT',berth:'다목적',color:'#a5f3fc'}
+};
+const STATUS = {
+  docked:{label:'접안중',c:'#22c55e',bg:'rgba(34,197,94,0.12)',bc:'rgba(34,197,94,0.3)'},
+  working:{label:'작업중',c:'#3b82f6',bg:'rgba(59,130,246,0.12)',bc:'rgba(59,130,246,0.3)'},
+  arriving:{label:'입항예정',c:'#f59e0b',bg:'rgba(245,158,11,0.12)',bc:'rgba(245,158,11,0.3)'},
+  departed:{label:'출항완료',c:'#64748b',bg:'rgba(100,116,139,0.12)',bc:'rgba(100,116,139,0.3)'}
+};
+const ADS = [
+  {title:'📢 부산신항 물류 포워딩 전문', sub:'최저가 보장 | 24시간 상담', bg:'rgba(0,119,182,0.2)'},
+  {title:'📢 항만 통관·운송 원스톱 서비스', sub:'신속 정확한 처리 | 전국 네트워크', bg:'rgba(2,62,138,0.2)'},
+  {title:'📢 선박 대리점 전문 서비스', sub:'부산항 전문 | 24시간 대응', bg:'rgba(0,180,216,0.2)'},
+];
+
+let allVessels = [];
+let selTerminal = null;
+let filterStatus = 'all';
+let adIdx = 0;
+
+// 시계
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toLocaleString('ko-KR',{hour12:false});
+},1000);
+
+// 광고 롤링
+setInterval(()=>{
+  adIdx = (adIdx+1) % ADS.length;
+  const ad = ADS[adIdx];
+  document.getElementById('ad-title').textContent = ad.title;
+  document.getElementById('ad-sub').textContent = ad.sub;
+  document.getElementById('ad-top').style.background = ad.bg;
+},5000);
+
+function badge(status){
+  const s = STATUS[status]||STATUS.departed;
+  return `<span class="badge" style="color:${s.c};background:${s.bg};border-color:${s.bc}">
+    <span class="dot" style="background:${s.c}"></span>${s.label}</span>`;
+}
+
+async function fetchData(){
+  try {
+    const [vRes, sRes] = await Promise.all([
+      fetch(API+'/api/vessels'),
+      fetch(API+'/api/summary')
+    ]);
+    const vData = await vRes.json();
+    const sData = await sRes.json();
+    allVessels = vData.data || [];
+
+    // 통계
+    const sm = sData.summary || {};
+    document.getElementById('s-total').textContent = sm.total || allVessels.length;
+    document.getElementById('s-docked').textContent = sm.docked || 0;
+    document.getElementById('s-working').textContent = sm.working || 0;
+    document.getElementById('s-active').textContent = (sm.docked||0)+(sm.working||0);
+    document.getElementById('s-arriving').textContent = sm.arriving || 0;
+    if(sData.lastUpdate){
+      const d = new Date(sData.lastUpdate);
+      document.getElementById('s-update').textContent = d.toLocaleTimeString('ko-KR',{hour12:false});
+    }
+
+    // 터미널 카드
+    const byT = sData.byTerminal || {};
+    document.getElementById('t-grid').innerHTML = Object.entries(TERMINALS).map(([id,t])=>{
+      const cnt = byT[id] || 0;
+      const isSel = selTerminal === id;
+      return `<div class="t-card${isSel?' sel':''}" onclick="toggleTerminal('${id}')" id="tc-${id}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="t-name" style="color:${t.color}">${t.name}</span>
+          <span class="t-count" style="color:${cnt>0?t.color:'#334155'}">${cnt}척</span>
+        </div>
+        <div class="t-berth">${t.berth}</div>
+      </div>`;
+    }).join('');
+
+    render();
+  } catch(e) {
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="9" class="msg">연결 중...<small>서버가 슬립 상태일 수 있습니다. 30초 후 자동으로 재시도합니다.</small></td></tr>`;
+    setTimeout(fetchData, 10000);
+  }
+}
+
+function toggleTerminal(id){
+  selTerminal = selTerminal===id ? null : id;
+  document.querySelectorAll('.t-card').forEach(el=>{
+    const tid = el.id.replace('tc-','');
+    el.classList.toggle('sel', tid===selTerminal);
+  });
+  document.getElementById('clear-btn').style.display = selTerminal ? 'block' : 'none';
+  render();
+}
+
+function clearTerminal(){
+  selTerminal = null;
+  document.querySelectorAll('.t-card').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('clear-btn').style.display = 'none';
+  render();
+}
+
+function setFilter(btn){
+  filterStatus = btn.dataset.f;
+  document.querySelectorAll('.fbtn[data-f]').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+function render(){
+  const search = document.getElementById('search').value.toLowerCase();
+  const filtered = allVessels.filter(v=>{
+    if(selTerminal && v.terminal!==selTerminal) return false;
+    if(filterStatus!=='all' && v.status!==filterStatus) return false;
+    if(search && !(v.vessel||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('tbody');
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="9" class="msg">검색 결과가 없습니다</td></tr>';
+  } else {
+    tbody.innerHTML = filtered.map((v,i)=>{
+      const t = TERMINALS[v.terminal]||{name:v.terminal,berth:'',color:'#94a3b8'};
+      return `<tr>
+        <td style="font-weight:900;color:${t.color}">${t.name}</td>
+        <td style="color:#64748b">${t.berth}</td>
+        <td>${v.flag||'🚢'} <b style="color:#cbd5e1">${v.vessel||'-'}</b></td>
+        <td style="font-family:monospace;color:#94a3b8">${v.berth||'-'}</td>
+        <td>${badge(v.status)}</td>
+        <td style="font-family:monospace;font-size:11px;color:#94a3b8">${v.eta||'-'}</td>
+        <td style="font-family:monospace;font-size:11px;color:#94a3b8">${v.etd||'-'}</td>
+        <td style="color:#64748b;font-size:11px">${v.voyage||'-'}</td>
+        <td style="color:#64748b;font-size:11px">${v.cargo||'-'}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('f-count').textContent = `총 ${filtered.length}척 표시`;
+}
+
+// 15분마다 자동 갱신
+setInterval(fetchData, 15*60*1000);
+fetchData();
+</script>
+</body>
+</html>
